@@ -1,0 +1,26 @@
+<annotation verified="yes">
+	<folder>preprocessed_dataset</folder>
+	<filename>190.jpg</filename>
+	<path>C:\Users\msi-nb\Desktop\hackaton\preprocessed_dataset\190.jpg</path>
+	<source>
+		<database>Unknown</database>
+	</source>
+	<size>
+		<width>640</width>
+		<height>640</height>
+		<depth>3</depth>
+	</size>
+	<segmented>0</segmented>
+	<object>
+		<name>Hearing_Protection</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>383</xmin>
+			<ymin>321</ymin>
+			<xmax>450</xmax>
+			<ymax>401</ymax>
+		</bndbox>
+	</object>
+</annotation>
