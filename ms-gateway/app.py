@@ -1,14 +1,19 @@
 import requests
+from engineio.async_drivers import eventlet
 from flask import Flask, request
 from KafkaConsumer import reading_stream
 import redis
 from flask_socketio import SocketIO, emit
+import numpy as np
+import eventlet
+import cv2
 
 from UsersService import find_user
 
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*", message_queue="redis://redis:6379")
 redis_client = redis.Redis(host="redis", port=6379, db=0)
+eventlet.monkey_patch()
 
 
 @app.route('/')
@@ -48,14 +53,42 @@ def notification(data):
 
 
 @app.get('/notifications')
-def archived_notifications(user_id, camera_id):
+def archived_notifications(data):
     dictionary = {
-        "user_id": user_id,
-        "camera_id": camera_id,
+        "user_id": data.get("user_id"),
+        "camera_id": data.get("camera_id")
     }
 
     data = requests.get("https://localhost:5005/get_notifications_of_user", params=dictionary)
     return data.json()
+
+
+@app.get("/request_streaming")
+def request_streaming(data):
+    user_id = data.get('user_id')
+    camera_id = data.get('camera_id')
+
+    if user_id and camera_id:
+        redis_client.set(user_id + "-" + camera_id, request.sid)
+
+    return 200
+
+
+@socketio.on('streaming')
+def streaming(data):
+    while True:
+        response = requests.get(
+            "http://localhost:5004/stream?user_id=" + data.get("user_id") + "&camera_id=" + data.get("camera_id"))
+        if response.status_code != 200:
+            continue
+
+        frame_bytes = np.frombuffer(response.content, dtype=np.uint8)
+        frame = cv2.imdecode(frame_bytes, cv2.IMREAD_COLOR)
+
+        _, buffer = cv2.imencode('.jpg', frame)
+        socketio.emit("video_frame", buffer.tobytes())
+
+        eventlet.sleep(0.03)
 
 
 if __name__ == '__main__':

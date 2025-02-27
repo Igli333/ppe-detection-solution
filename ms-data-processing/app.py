@@ -28,7 +28,7 @@ def load_frame():
                   json={'userId': user_id, 'camera_id': camera_id},
                   files={'file': buffer.tobytes()}
                   )
-    return
+    return 200
 
 
 if __name__ == '__main__':
