@@ -1,0 +1,94 @@
+services:
+  gateway:
+    build: ./ms-gateway/
+    ports:
+      - "5000:5000"
+    depends_on:
+      - db # redis and mongo
+    volumes:
+      - .:/gateway 
+  data_processing:
+    build: ./ms-data-processing
+    ports:
+      - "5001:5001"
+    depends_on:
+      - gateway
+    volumes:
+      - .:/data_processing 
+  ml:
+    build: ./ms-ml
+    ports:
+      - "5002:5002"
+    depends_on:
+      - data_processing
+    volumes:
+      - .:/ml 
+  validation:
+    build: .
+    ports:
+      - "5003:5003"
+    depends_on:
+      - ml
+    volumes:
+      - .:/ml 
+  streaming:
+    build: ./ms-streaming
+    ports:
+      - "5004:5004"
+    depends_on:
+      - validation
+    volumes:
+      - .:/validation \
+  notification:
+    build: ./ms-notification
+    ports:
+      - "5005:5005"
+    depends_on:
+      - validation
+    volumes:
+      - .:/validation
+  
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - 2181:2181
+    
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    depends_on:
+      - zookeeper
+    ports:
+      - 9092:9092
+      - 29092:29092
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_CREATE_TOPICS: "camera-stream:3:1"
+
+  cache:
+    image: redis:6.2-alpine
+    restart: always
+    ports:
+      - '6379:6379'
+    command: redis-server --save 20 1 --loglevel warning --requirepass eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81
+    volumes: 
+      - cache:/data
+  
+  mongodb:
+    image: mongo:6-jammy
+    ports:
+      - '27017:27017'
+    volumes:
+      - dbdata6:/data/db
+
+volumes:
+  cache:
+  dbdata6:
+    
